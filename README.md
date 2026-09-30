@@ -1,7 +1,8 @@
 # Agentic design patterns
 
-This repository demonstrates three LangGraph agentic AI patterns through a
-Streamlit interface: tool-using, planner-executor, and supervisor-worker.
+This repository demonstrates four LangGraph agentic AI patterns through a
+Streamlit interface: tool-using, planner-executor, supervisor-worker, and
+reflection.
 Choose a pattern in the app to try its workflow.
 
 The tool-using pattern routes arithmetic questions to a calculator and other
@@ -26,6 +27,10 @@ operators; it does not execute arbitrary Python code.
 The planner-executor pattern creates a step-by-step plan and generates a result
 for each step. The supervisor-worker pattern routes calculations to a math
 worker and leave-balance requests to a leave-balance worker.
+
+The reflection pattern drafts an answer, reviews it with a critic, and revises
+it when needed. The Streamlit view shows the final answer, review status,
+feedback, and number of draft attempts.
 
 ## Requirements
 
