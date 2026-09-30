@@ -1,8 +1,11 @@
 # Agentic design patterns
 
-A LangGraph tool-using workflow with a Streamlit chat interface. The reasoning
-agent routes arithmetic questions to a calculator and sends other questions to
-a general-purpose fallback agent.
+This repository demonstrates three LangGraph agentic AI patterns through a
+Streamlit interface: tool-using, planner-executor, and supervisor-worker.
+Choose a pattern in the app to try its workflow.
+
+The tool-using pattern routes arithmetic questions to a calculator and other
+questions to a general-purpose fallback agent.
 
 ## Workflow
 
@@ -19,6 +22,10 @@ expression. General questions such as "Define AI" are answered by the fallback
 agent instead of being passed to the calculator. The calculator accepts numeric
 constants, unary signs, and the `+`, `-`, `*`, `/`, `//`, `%`, and `**`
 operators; it does not execute arbitrary Python code.
+
+The planner-executor pattern creates a step-by-step plan and generates a result
+for each step. The supervisor-worker pattern routes calculations to a math
+worker and leave-balance requests to a leave-balance worker.
 
 ## Requirements
 
@@ -49,7 +56,7 @@ the process environment takes precedence over the value in `.env`.
 ## Run the chat app
 
 ```powershell
-python -m streamlit run streamlit_app.py
+.\.venv\Scripts\python.exe -m streamlit run .\streamlit_app.py
 ```
 
 Streamlit prints the local URL, usually `http://localhost:8501`.
@@ -57,7 +64,7 @@ Streamlit prints the local URL, usually `http://localhost:8501`.
 To run the original command-line example instead:
 
 ```powershell
-python -m patterns.pattern_executer.tool_using.run
+.\.venv\Scripts\python.exe -m patterns.pattern_executer.tool_using.run
 ```
 
 ## Tests

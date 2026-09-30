@@ -29,6 +29,13 @@ def get_planner_executor_workflow():
     return build_graph()
 
 
+@st.cache_resource(show_spinner=False)
+def get_supervisor_worker_workflow():
+    from patterns.supervizer_worker.graph import build_graph
+
+    return build_graph()
+
+
 def queue_suggestion():
     selected = st.session_state.suggestion
     if selected:
@@ -41,13 +48,14 @@ st.caption("Explore agentic AI workflows by running each pattern.")
 
 pattern = st.segmented_control(
     "Pattern",
-    options=["Tool-using", "Planner-executor"],
+    options=["Tool-using", "Planner-executor", "Supervisor-worker"],
     default="Tool-using",
     key="pattern_mode",
 )
 
 st.session_state.setdefault("messages", [])
 st.session_state.setdefault("planner_result", None)
+st.session_state.setdefault("supervisor_result", None)
 
 with st.sidebar:
     st.subheader("Workflow")
@@ -57,11 +65,17 @@ with st.sidebar:
         if st.button("New conversation", icon=":material/add:", width="stretch"):
             st.session_state.messages = []
             st.rerun()
-    else:
+    elif pattern == "Planner-executor":
         st.badge("Planner", icon=":material/format_list_numbered:", color="blue")
         st.badge("Executor", icon=":material/play_arrow:", color="green")
         if st.button("Clear result", icon=":material/delete:", width="stretch"):
             st.session_state.planner_result = None
+            st.rerun()
+    else:
+        st.badge("Supervisor", icon=":material/account_tree:", color="blue")
+        st.badge("Math and leave workers", icon=":material/groups:", color="green")
+        if st.button("Clear result", icon=":material/delete:", width="stretch"):
+            st.session_state.supervisor_result = None
             st.rerun()
 
 if pattern == "Tool-using":
@@ -128,7 +142,7 @@ if pattern == "Tool-using":
         if intent:
             assistant_message["intent"] = intent
         st.session_state.messages.append(assistant_message)
-else:
+elif pattern == "Planner-executor":
     st.subheader("Plan and execute a task")
     st.caption("The planner breaks your task into steps; the executor generates a result for each step.")
 
@@ -194,3 +208,79 @@ else:
             with st.container(border=True):
                 st.markdown("#### Execution result")
                 st.markdown(result["output"] or "No steps were executed.")
+else:
+    st.subheader("Route a request to a worker")
+    st.caption("The supervisor sends calculations to the math worker and PTO requests to the leave-balance worker.")
+
+    with st.form("supervisor_worker_form", border=False):
+        query = st.text_area(
+            "Request",
+            placeholder="For example: What is 18% of 250? or What is Alice's leave balance?",
+            height=120,
+        )
+        submitted = st.form_submit_button(
+            "Route request",
+            icon=":material/account_tree:",
+            type="primary",
+        )
+
+    if submitted:
+        if not query.strip():
+            st.warning("Enter a request for the supervisor.")
+        else:
+            error_message = None
+            with st.status(":shimmer[Supervisor routing request]", type="compact") as status:
+                try:
+                    result = get_supervisor_worker_workflow().invoke(
+                        {"query": query.strip()}
+                    )
+                    st.session_state.supervisor_result = {
+                        "query": query.strip(),
+                        "worker": result.get("worker", ""),
+                        "expression": result.get("expression", ""),
+                        "employee_name": result.get("employee_name", ""),
+                        "result": result.get("result", ""),
+                    }
+                    status.update(label="Request complete", state="complete")
+                except AuthenticationError:
+                    error_message = (
+                        "OpenAI rejected the configured API key. Check `OPENAI_API_KEY` "
+                        "in `.env` or your process environment."
+                    )
+                    status.update(label="Authentication failed", state="error")
+                except ValueError as error:
+                    if "OPENAI_API_KEY not found" in str(error):
+                        error_message = "Set `OPENAI_API_KEY` in `.env` before running this pattern."
+                    else:
+                        error_message = "The supervisor could not process that request. Please rephrase it."
+                    status.update(label="Could not complete request", state="error")
+                except Exception:
+                    error_message = "The workflow encountered an error. Check the app terminal for details."
+                    status.update(label="Could not complete request", state="error")
+
+            if error_message:
+                st.error(error_message)
+
+    if st.session_state.supervisor_result:
+        result = st.session_state.supervisor_result
+        st.markdown("#### Request")
+        st.write(result["query"])
+
+        worker_labels = {
+            "math": "Math worker",
+            "leave": "Leave-balance worker",
+        }
+        st.badge(
+            worker_labels.get(result["worker"], "Worker"),
+            icon=":material/account_tree:",
+            color="blue",
+        )
+
+        if result["expression"]:
+            st.caption("Expression sent to calculator")
+            st.code(result["expression"], language="python")
+        if result["employee_name"]:
+            st.caption(f"Employee: {result['employee_name']}")
+
+        st.markdown("#### Result")
+        st.markdown(result["result"] or "The selected worker returned no result.")
